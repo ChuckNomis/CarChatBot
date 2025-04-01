@@ -1,44 +1,34 @@
-const axios = require('axios');
 const Chat = require('../models/Chat');
+const axios = require('axios');
+const path = require('path');
+const fs = require('fs');
 
-// Function to send user message to OpenAI API and get response
-const generateAIResponse = async (message) => {
-  try {
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: message }],
-        temperature: 0.7,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        }
-      }
-    );
+// This could point to your Python service (if RAG is handled separately)
+// OR you can integrate directly here using LangChain in Python
 
-    return response.data.choices[0].message.content;
-  } catch (error) {
-    console.error("OpenAI API Error:", error.response?.data || error.message);
-    return "Sorry, I couldn't generate a response at the moment.";
-  }
-};
-
-// Route handler for POST /chat
 const chat = async (req, res) => {
+  const { message, bookId } = req.body;
+
+  if (!message || !bookId) {
+    return res.status(400).json({ error: 'Missing message or bookId' });
+  }
+
   try {
-    const userMessage = req.body.message;
-    const aiResponse = await generateAIResponse(userMessage);
+    // Use Python API to get RAG response from the correct FAISS index
+    const ragResponse = await axios.post('http://localhost:5001/rag', {
+      message,
+      bookId
+    });
 
-    const newChat = new Chat({ message: userMessage, response: aiResponse });
-    await newChat.save();
+    const responseText = ragResponse.data.response;
 
-    res.status(200).json({ message: userMessage, response: aiResponse });
+    const chatRecord = new Chat({ message, response: responseText });
+    await chatRecord.save();
+
+    res.status(200).json({ message, response: responseText });
   } catch (error) {
-    console.error("Chat error:", error);
-    res.status(500).json({ error: error.message });
+    console.error('RAG Chat Error:', error.message);
+    res.status(500).json({ error: "Something went wrong while generating the response." });
   }
 };
 

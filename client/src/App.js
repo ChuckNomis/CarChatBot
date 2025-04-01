@@ -1,24 +1,31 @@
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
-
-export const uploadBook = async (file) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  return axios.post(`${API_URL}/upload`, formData);
-};
-
-export const sendMessage = async (message) => {
-  return axios.post(`${API_URL}/chat`, { message });
-};
-
-
-
+// src/App.js
+import React, { useState, useEffect } from 'react';
+import UploadBook from './components/UploadBook';
+import BookSelector from './components/BookSelector';
+import ChatBox from './components/ChatBox';
+import { getBooks } from './api';
 
 function App() {
-  <div>
-    
-  </div>
+  const [books, setBooks] = useState([]);
+  const [selectedBook, setSelectedBook] = useState('');
+
+  const loadBooks = async () => {
+    const res = await getBooks();
+    setBooks(res.data);
+  };
+
+  useEffect(() => {
+    loadBooks();
+  }, []);
+
+  return (
+    <div>
+      <h1>Car Book Chatbot</h1>
+      <UploadBook onUpload={loadBooks} />
+      <BookSelector books={books} selectedBook={selectedBook} setSelectedBook={setSelectedBook} />
+      <ChatBox selectedBook={selectedBook} />
+    </div>
+  );
 }
 
 export default App;
