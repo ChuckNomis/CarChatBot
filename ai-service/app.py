@@ -2,7 +2,8 @@ from flask import Flask, request, jsonify
 from process_pdf import process_pdf_and_create_index
 from chat_rag import get_answer_from_index
 from dotenv import load_dotenv
-
+import os
+import tempfile
 load_dotenv(dotenv_path='../.env')
 
 app = Flask(__name__)
@@ -14,8 +15,17 @@ def process():
     book_id = request.form['bookId']
 
     try:
-        # ✅ Send the in-memory file stream
-        process_pdf_and_create_index(file.stream, book_id)
+        # Save to temporary file for processing (PDF path required by OCR)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            file.save(tmp.name)
+            tmp_path = tmp.name
+
+        # Pass path to processor
+        process_pdf_and_create_index(tmp_path, book_id)
+
+        # Optionally delete the temp file manually after
+        os.remove(tmp_path)
+
         return jsonify({"message": "Book processed and indexed"}), 200
     except Exception as e:
         print(f"[ERROR in processing]: {e}")
