@@ -1,53 +1,49 @@
 from langchain.chat_models import ChatOpenAI
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
+from langchain.embeddings import OpenAIEmbeddings
+
+custom_prompt = PromptTemplate(
+    input_variables=["context", "question"],
+    template="""
+אתה יועץ רכב מומחה.
+תענה רק לפי הספר הוראות שמצורף כpdf. 
+אם אין תשובה ברורה במסמך, אמור 'אין תשובה במסמך'.
+אל תנחש ואל תספק מידע ממקורות חיצוניים או ידע כללי.
+שמור על שפה מקצועית וברורה, בלי להוסיף פרשנויות או המלצות אישיות.
+ודא שהתשובות מדויקות ומבוססות על הטקסט בלבד.
+
+בכל תשובה השתמש בתבנית הבאה:
+
+✅ תשובה מהירה:
+🔍 הסבר מפורט:
+⚠️ אזהרה:
+📖 למידע נוסף, ראה בעמודים XX–XX ו-XX–XX בספר הנהג.
+
+הקשר:
+{context}
+
+שאלה:
+{question}
+"""
+)
 
 
 def get_answer_from_index(message, book_id):
-    print(f"[RAG] Getting index for: {book_id}")
-
     vectorstore = FAISS.load_local(
         f"vector_store/{book_id}",
         OpenAIEmbeddings(model="text-embedding-3-large"),
         allow_dangerous_deserialization=True
     )
 
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 8})
-
-    # Prompt template for Hebrew structured answers
-    prompt_template = PromptTemplate.from_template("""
-אתה יועץ רכב מומחה. ענה על השאלה אך ורק לפי המידע שמופיע בקטעים למטה.
-אם אין תשובה מדויקת, כתוב: "לא מצאתי תשובה במסמך המצורף".
-
-🔎 השאלה: {question}
-=========
-📖 קטעים רלוונטיים מהמסמך:
-{context}
-=========
-🛠 תשובה מפורטת בעברית:
-""")
-
-    chain = ConversationalRetrievalChain.from_llm(
-        llm=ChatOpenAI(model_name="gpt-4o", temperature=0.2),
-        retriever=retriever,
-        return_source_documents=True,
-        combine_docs_chain_kwargs={"prompt": prompt_template}
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=ChatOpenAI(model_name="gpt-4o"),
+        retriever=vectorstore.as_retriever(search_kwargs={"k": 4}),
+        chain_type="stuff",
+        chain_type_kwargs={"prompt": custom_prompt},
+        return_source_documents=True
     )
 
-    try:
-        result = chain({"question": message, "chat_history": []})
-        answer = result["answer"]
-        sources = result["source_documents"]
-
-        # Get unique page numbers
-        pages = sorted({doc.metadata.get("page")
-                       for doc in sources if doc.metadata.get("page")})
-        page_info = f"\n\n📄 מקור: עמודים {', '.join(map(str, pages))}" if pages else ""
-
-        return answer + page_info
-
-    except Exception as e:
-        print(f"[GPT ERROR]: {e}")
-        return "❌ GPT נכשל בלספק תשובה"
+    result = qa_chain({"query": message})
+    return result['result']
