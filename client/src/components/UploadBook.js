@@ -1,28 +1,50 @@
-import react, {useState} from 'react';
-import {uploadBook} from '../api';
-export default function UploadBook({ onUpload }){
-    const [file, setFile] = useState(null);
-    const [title, setTitle] = useState('');
+import React, { useState } from 'react';
+import { uploadBook } from '../api';
+import './UploadBook.css'; // 💡 import the external stylesheet
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if(!file || !title) return alert('Please select a file and enter a title');
-        try {
-            await uploadBook(file,title);
-            alert('Uploaded!');
-            onUpload(); // Refresh book list
-        } catch (err) {
-            console.error(err);
-            alert('Upload failed');
-        }
-    };
+export default function UploadBook({ onUpload }) {
+  const [file, setFile] = useState(null);
+  const [title, setTitle] = useState('');
 
-    return (
-        <form onSubmit={handleSubmit}>
-            <input type="text" placeholder="Book title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <input type="file" accept=".pdf" onChange={(e) => setFile(e.target.files[0])} />
-            <button type="submit">Upload</button>
-        </form>
-    );
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!file || !title) {
+      alert('Please enter a book title and select a PDF file.');
+      return;
+    }
 
+    try {
+      await uploadBook(file, title);
+      alert('✅ Book uploaded successfully!');
+      setFile(null);
+      setTitle('');
+      onUpload(); // Notify parent
+    } catch (err) {
+      console.error(err);
+      alert('❌ Upload failed. Please check the file and try again.');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="upload-form">
+      <label>Book Title:</label>
+      <input
+        type="text"
+        placeholder="Book Name"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="upload-input"
+      />
+
+      <label>Select PDF File:</label>
+      <input
+        type="file"
+        accept=".pdf"
+        onChange={(e) => setFile(e.target.files[0])}
+        className="upload-input"
+      />
+
+      <button type="submit" className="upload-button">📤 Upload Book</button>
+    </form>
+  );
 }
