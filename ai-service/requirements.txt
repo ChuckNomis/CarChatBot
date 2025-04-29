@@ -1,0 +1,8 @@
+flask
+python-dotenv
+openai
+faiss-cpu
+PyMuPDF
+PyPDF2
+langchain
+tqdm
