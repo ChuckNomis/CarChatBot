@@ -1,8 +1,8 @@
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-from langchain.vectorstores import FAISS
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
 
 custom_prompt = PromptTemplate(
     input_variables=["context", "question"],
@@ -31,9 +31,11 @@ custom_prompt = PromptTemplate(
 
 
 def get_answer_from_index(message, book_id):
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/paraphrase-multilingual-mpnet-base-v2")
     vectorstore = FAISS.load_local(
         f"vector_store/{book_id}",
-        OpenAIEmbeddings(model="text-embedding-3-large"),
+        embeddings,
         allow_dangerous_deserialization=True
     )
 

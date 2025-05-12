@@ -1,8 +1,8 @@
 import os
 import re
 from PyPDF2 import PdfReader
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -35,7 +35,8 @@ def process_pdf_and_create_index(pdf_path, book_id):
         for i, chunk in enumerate(chunks)
     ]
 
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/paraphrase-multilingual-mpnet-base-v2")
     vector_store = FAISS.from_documents(documents, embeddings)
 
     index_path = f"vector_store/{book_id}"
