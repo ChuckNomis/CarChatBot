@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from process_pdf import process_pdf_and_create_index
+from process_file import process_file_and_create_index
 from chat_rag import get_answer_from_index
 from dotenv import load_dotenv
 import os
@@ -15,13 +15,14 @@ def process():
     book_id = request.form['bookId']
 
     try:
-        # Save to temporary file for processing (PDF path required by OCR)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        # Save to temporary file for processing (preserve extension)
+        ext = os.path.splitext(file.filename)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
             file.save(tmp.name)
             tmp_path = tmp.name
 
         # Pass path to processor
-        process_pdf_and_create_index(tmp_path, book_id)
+        process_file_and_create_index(tmp_path, book_id)
 
         # Optionally delete the temp file manually after
         os.remove(tmp_path)

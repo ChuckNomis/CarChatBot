@@ -9,7 +9,7 @@ export default function UploadBook({ onUpload }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file || !title) {
-      alert('Please enter a book title and select a PDF file.');
+      alert('Please enter a book title and select a PDF, HTML, or TXT file.');
       return;
     }
 
@@ -39,7 +39,7 @@ export default function UploadBook({ onUpload }) {
       <label>Select PDF File:</label>
       <input
         type="file"
-        accept=".pdf"
+        accept=".pdf,.html,.txt"
         onChange={(e) => setFile(e.target.files[0])}
         className="upload-input"
       />
